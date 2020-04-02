@@ -2,7 +2,7 @@
 #include "helper.h"
 
 int main() {
-	Object* keys = new Object[1];
+	/*Object* keys = new Object[1];
 	keys[0] = Object();
 	keys[0].set<CharSet<13>>(CharSet<13>((char*)"Hello world!"));
 
@@ -54,6 +54,41 @@ int main() {
 
 	std::string A = mySuperDictionary.get<int, std::string>(17);
 
-	std::cout << std::endl << A << std::endl << mySuperDictionary.get<char, std::string>('q') << std::endl;
+	std::cout << std::endl << A << std::endl << mySuperDictionary.get<char, std::string>('q') << std::endl;*/
+
+	List<int> myList = List<int>();
+
+	myList.append(17);
+	myList.append(19);
+	myList.append(-179);
+
+	Enumerator myEnumerator = Enumerator(&myList);
+
+	for (Object i = myEnumerator.next(); i != nullObject; i = myEnumerator.next())
+	{
+		std::cout << i.get<int>() << std::endl;
+	}
+	std::cout << std::endl;
+	myList.set(1, 1111);
+
+	myList.pop(0);
+	
+	myList.append(123);
+	myEnumerator = Enumerator(&myList);
+
+	for (Object i = myEnumerator.next(); i != nullObject; i = myEnumerator.next())
+	{
+		std::cout << i.get<int>() << std::endl;
+	}
+
+	std::cout << std::endl << myList[0].value() << std::endl;
+	myList[0] = 1234;
+	myList[1] = 1234;
+
+	if (myList[0] == myList[1] && myList[0] == 1234) {
+		std::cout << myList[0].value() << std::endl;
+	}
+
+
 	return(0);
 }

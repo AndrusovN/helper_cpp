@@ -8,6 +8,7 @@
 #include "enumerable.h"
 #include "dictionary.h"
 #include "dictionaryHelper.h"
+#include "List.h"
 
 using namespace enumerable;
 using namespace objects;

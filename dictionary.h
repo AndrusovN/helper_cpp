@@ -288,10 +288,11 @@ namespace enumerable {
 			return(value);
 		}
 
-		void setValue(objects::Object val, void* sender) {
+		int setValue(objects::Object val, void* sender) {
 			try {
 				if (sender == superKey) {
 					value = val;
+					return(0);
 				}
 				else {
 					//std::cout << "there" << std::endl;
@@ -301,6 +302,7 @@ namespace enumerable {
 			catch (objects::Exception* ex) {
 				//std::cout << "there1" << std::endl;
 				ex->work();
+				return(1);
 				//std::cout << "there3" << std::endl;
 			}
 		}
@@ -310,13 +312,16 @@ namespace enumerable {
 			return(superKey);
 		}
 
+		void _init(void* rightsender) {
+			this->superKey = rightsender;
+		}
+
 		objects::Object getValue() {
 			return(value);
 		}
-		void* superKey;
 		SuperKVPair(){}
 	private:
-		
+		void* superKey;
 	};
 
 	class SuperDictionary : public IEnumerable, public Dictionary<objects::Object, objects::Object> {
@@ -331,7 +336,7 @@ namespace enumerable {
 			for (int i = 0; i < len; i++)
 			{
 				kvpArray[i] = SuperKVPair(keys[i], values[i]);
-				kvpArray[i]._init();
+				kvpArray[i]._init((void*)this);
 			}
 			MakeSuperDictionary(kvpArray, len);
 		}
@@ -376,7 +381,7 @@ namespace enumerable {
 				while (c != nullPtr) {
 					if (*New == *c) {
 						c->deleted = false;
-						c->setValue(New->Value(), c->superKey);
+						c->setValue(New->Value(), (void*)this);
 					}
 					if (*New > * c) {
 						if (c->right == (SuperKVPair*)nullPtr) {
@@ -529,7 +534,7 @@ namespace enumerable {
 		}
 		
 		int getNextIndex(IItem* current, int index, int hash) {
-			return(0);
+			return(index + 1);
 		}
 		
 		int getNextHash(IItem* current, int index, int hash) {

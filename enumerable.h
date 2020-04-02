@@ -100,7 +100,8 @@ namespace objects {
 				}
 			}
 			catch (TypeException* ex) {
-				ex->work();
+				throw ex;
+				//ex->work();
 				return(T());
 				//throw(&TypeException((char*)"Wrong type!"));
 			}
@@ -152,8 +153,10 @@ namespace enumerable {
 	{
 	public:
 		objects::Object getValue();
-		void setValue(objects::Object val, void* sender);
+		//returns 0 if success, else error number
+		int setValue(objects::Object val, void* sender);
 		void* _init();
+		void _init(void* rightsender);
 	};
 
 	__interface IEnumerable
@@ -260,10 +263,11 @@ namespace enumerable {
 		objects::Object getValue() {
 			return(value);
 		}
-		void setValue(objects::Object val, void* sender) {
+		int setValue(objects::Object val, void* sender) {
 			try {
 				if (sender == rightsender) {
 					value = val;
+					return(0);
 				}
 				else {
 					//std::cout << "there" << std::endl;
@@ -272,7 +276,9 @@ namespace enumerable {
 			}
 			catch (objects::Exception* ex) {
 				//std::cout << "there1" << std::endl;
-				ex->work();
+				throw ex;
+				//ex->work();
+				return(1);
 				//std::cout << "there3" << std::endl;
 			}
 			
@@ -283,6 +289,10 @@ namespace enumerable {
 			rightsender = (void*)malloc(1);
 			set = true;
 			return(rightsender);
+		}
+
+		void _init(void* rightsender) {
+			this->rightsender = rightsender;
 		}
 
 		~ArrItem() {
@@ -370,7 +380,8 @@ namespace enumerable {
 				}
 			}
 			catch (objects::Exception* ex) {
-				ex->work();
+				throw ex;
+				//ex->work();
 			}
 		}
 
@@ -400,7 +411,8 @@ namespace enumerable {
 				}
 			}
 			catch (objects::Exception* ex) {
-				ex->work();
+				throw ex;
+				//ex->work();
 			}
 		}
 
