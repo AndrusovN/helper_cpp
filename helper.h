@@ -9,6 +9,7 @@
 #include "dictionary.h"
 #include "dictionaryHelper.h"
 #include "List.h"
+#include "TArray.h"
 
 using namespace enumerable;
 using namespace objects;

@@ -135,10 +135,11 @@ namespace enumerable {
 	};
 
 	template <class T>
-	class SpecialItem {
+	class SpeciaListlItem : public SpecialItem {
 	public:
-		SpecialItem(ListItem<T>* MyItem, void* key) {
-			item = MyItem;
+		
+		SpeciaListlItem(ListItem<T>* item, void* key) {
+			this->item = item;
 			this->key = key;
 		}
 
@@ -146,72 +147,47 @@ namespace enumerable {
 			return(item->getValue().get<T>());
 		}
 
-		void operator = (T value) {
-			item->setValue(value, key);
+		operator T(){
+			return(value());
 		}
 
-		bool operator == (SpecialItem<T> a) {
-			return(value() == a.value());
+		void operator = (T value) {
+			((ListItem<T>*)(item))->setValue(value, key);
 		}
 
 		bool operator == (T a) {
 			return(value() == a);
 		}
 
-		bool operator != (SpecialItem<T> a) {
-			return(!(*this == a));
-		}
-
 		bool operator != (T a) {
 			return(!(*this == a));
-		}
-
-		bool operator > (SpecialItem<T> a) {
-			return(value() > a.value());
 		}
 
 		bool operator > (T a) {
 			return(value() > a);
 		}
 
-		bool operator < (SpecialItem<T> a) {
-			return(value() < a.value());
-		}
-
 		bool operator < (T a) {
 			return(value() < a);
-		}
-
-		bool operator >= (SpecialItem<T> a) {
-			return(value() >= a.value());
 		}
 
 		bool operator >= (T a) {
 			return(value() >= a);
 		}
 
-		bool operator <= (SpecialItem<T> a) {
-			return(value() <= a.value());
-		}
-
 		bool operator <= (T a) {
 			return(value() <= a);
 		}
-
-	private:
-		ListItem<T>* item;
-		void* key;
-
 	};
 
 	template <class T>
 	class List : public IEnumerable {
 	public:
-		SpecialItem<T> operator [] (int index) {
+		SpeciaListlItem<T> operator [] (int index) {
 			try {
 				ListItem<T>* current = _get(index);
 				if (current != (ListItem<T>*)nullPtr) {
-					return(SpecialItem<T>(current, (void*)this));
+					return(SpeciaListlItem<T>(current, (void*)this));
 				}
 				else {
 					throw new IndexException((char*)"Index out of range exception!");
@@ -238,11 +214,13 @@ namespace enumerable {
 		}
 
 		ListItem<T>* _get(int index) {
+			//std::cout << "index " << index << std::endl << "size : " << length << std::endl;
 			try {
 				if (index < length && index > -1) {
 					ListItem<T>* current = first->getNext();
-					for (int i; i < index; i++)
+					for (int i = 0; i < index; i++)
 					{
+						//std::cout << "i " << i << std::endl;
 						current = current->getNext();
 					}
 					return(current);

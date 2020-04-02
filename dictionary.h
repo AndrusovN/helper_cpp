@@ -30,7 +30,7 @@ namespace enumerable {
 	};
 
 	template <class keyType, class valueType>
-	class KeyValuePair {
+	class KeyValuePair : public IItem {
 	public:
 		bool operator > (KeyValuePair<keyType, valueType> a) {
 			return(isEqual(a) == 1);
@@ -44,9 +44,49 @@ namespace enumerable {
 			return(isEqual(a) == 0);
 		}
 
+		void operator = (KeyValuePair<keyType, valueType> a) {
+			this->deleted = a.deleted;
+			this->key = a.key;
+			this->keyObj = a.keyObj;
+			this->left = a.left;
+			this->parent = a.parent;
+			this->rightsender = a.rightsender;
+			this->right = a.right;
+			this->value = a.value;
+			this->valueObj = a.valueObj;
+		}
+
 		KeyValuePair(keyType k, valueType v) {
+			keyObj = objects::Object();
+			keyObj.set<keyType>(k);
+			valueObj = objects::Object();
+			valueObj.set<valueType>(v);
 			this->key = k;
 			this->value = v;
+		}
+
+		KeyValuePair(objects::Object k, objects::Object v, bool isNull) {
+			if (isNull) {
+				key = keyType();
+				value = valueType();
+				keyObj = k;
+				valueObj = v;
+			}
+			else {
+				try {
+					k.get<keyType>();
+					v.get<valueType>();
+
+					key = k.get<keyType>();
+					value = v.get<valueType>();
+
+					valueObj = v;
+					keyObj = k;
+				}
+				catch (objects::Exception* ex) {
+					throw ex;
+				}
+			}
 		}
 
 		keyType getKey() {
@@ -57,19 +97,71 @@ namespace enumerable {
 			return(value);
 		}
 
-		void setValue(valueType val) {
-			value = val;
+		void _setValue(valueType val, void* sender) {
+			try {
+				if (sender == rightsender) {
+					value = val;
+					valueObj.set<valueType>(value);
+				}
+				else {
+					throw& PrivacyException((char*)"This sender has no rights to change this item");
+				}
+			}
+			catch (objects::Exception* ex) {
+				std::cout << sender << std::endl << rightsender << std::endl;
+				throw ex;
+			}
+			
+		}
+
+		void* _init() {
+			rightsender = malloc(1);
+			return(rightsender);
+		}
+
+		void _init(void* rightsender) {
+			this->rightsender = rightsender;
+		}
+
+		objects::Object getValue() {
+			return(valueObj);
+		}
+
+		int setValue(objects::Object value, void* sender) {
+			try {
+				if (sender == rightsender) {
+					try {
+						value.get<valueType>();
+					}
+					catch (objects::Exception* ex) {
+						throw ex;
+						return(2);
+					}
+					valueObj = value;
+					this->value = value.get<valueType>();
+					return(0);
+				}
+				else {
+					throw& PrivacyException((char*)"This sender has no rights to change this item");
+				}
+			}
+			catch (objects::Exception * ex) {
+				throw ex;
+				return(1);
+			}
 		}
 
 		KeyValuePair(){}
-
 		KeyValuePair* right;
 		KeyValuePair* left;
 		KeyValuePair* parent;
 		bool deleted = false;
 	protected:
+		void* rightsender;
+		objects::Object keyObj;
 		keyType key;
 		valueType value;
+		objects::Object valueObj;
 		int isEqual(KeyValuePair<keyType, valueType> a) {
 			int len = sizeof(keyType);
 			char* meAsChar = (char*)& key;
@@ -91,15 +183,84 @@ namespace enumerable {
 	};
 
 	template <class keyType, class valueType>
-	class Dictionary {
+	class SpecialDictionaryItem : public SpecialItem {
 	public:
+		SpecialDictionaryItem(KeyValuePair<keyType, valueType>* item, void* key) {
+			this->item = item;
+			this->key = key;
+		}
+
+		valueType value() {
+			return(item->getValue().get<valueType>());
+		}
+
+		operator valueType() {
+			return(value());
+		}
+
+		void operator = (valueType value) {
+			item->_setValue(value, key);
+		}
+
+		bool operator == (valueType a) {
+			return(value() == a);
+		}
+
+		bool operator != (valueType a) {
+			return(!(*this == a));
+		}
+
+		bool operator > (valueType a) {
+			return(value() > a);
+		}
+
+		bool operator < (valueType a) {
+			return(value() < a);
+		}
+
+		bool operator >= (valueType a) {
+			return(value() >= a);
+		}
+
+		bool operator <= (valueType a) {
+			return(value() <= a);
+		}
+
+	private:
+		KeyValuePair<keyType, valueType>* item;
+		void* key;
+	};
+
+	template <class keyType, class valueType>
+	class Dictionary : public IEnumerable{
+	public:
+		void operator = (Dictionary<keyType, valueType> a) {
+			this->size = a.size;
+			this->head = a.head;
+			this->myKey = a.myKey;
+		}
+
+		SpecialDictionaryItem<keyType, valueType> operator [] (keyType index) {
+			try {
+				return(SpecialDictionaryItem<keyType, valueType>(_get(index), myKey));
+			}
+			catch (objects::Exception* ex) {
+				std::cout << index << std::endl;
+				throw ex;
+			}
+			
+		}
+
 		Dictionary(keyType* keys, valueType* values, int len) {
 			KeyValuePair<keyType, valueType>* kvpArray = new KeyValuePair<keyType, valueType>[len];
 			for (int i = 0; i < len; i++)
 			{
 				kvpArray[i] = KeyValuePair<keyType, valueType>(keys[i], values[i]);
+				kvpArray[i]._init((void*)this);
 			}
+			
 			*this = Dictionary(kvpArray, len);
+			myKey = (void*)this;
 		}
 
 		Dictionary(){
@@ -107,6 +268,13 @@ namespace enumerable {
 			head->parent = (KeyValuePair<keyType, valueType>*)nullPtr;
 			head->right = (KeyValuePair<keyType, valueType>*)nullPtr;
 			head->left = (KeyValuePair<keyType, valueType>*)nullPtr;
+			head->deleted = true;
+			size = 0;
+			myKey = (void*)this;
+		}
+
+		void* getKey() {
+			return myKey;
 		}
 
 		int remove(keyType key) {
@@ -116,6 +284,7 @@ namespace enumerable {
 				while (c != nullPtr) {
 					if (cur == *c) {
 						c->deleted = true;
+						size--;
 						return(0);
 					}
 					if (cur > * c) {
@@ -130,7 +299,8 @@ namespace enumerable {
 				throw(&KeyException((char*)"There is no that key in the dictionary"));
 			}
 			catch (objects::Exception* ex) {
-				ex->work();
+				throw ex;
+				//ex->work();
 				return(1);
 			}
 		}
@@ -139,10 +309,12 @@ namespace enumerable {
 		int set(KeyValuePair<keyType, valueType>* New) {
 			KeyValuePair<keyType, valueType>* c = head;
 			try {
-				while (c != nullPtr) {
+				while (c != (KeyValuePair<keyType, valueType>*)nullPtr) {
 					if (*New == *c) {
 						c->deleted = false;
-						c->setValue(New->Value());
+						size++;
+						c->_setValue(New->Value(), myKey);
+						return(0);
 					}
 					if (*New > * c) {
 						if (c->right == (KeyValuePair<keyType, valueType>*)nullPtr) {
@@ -150,6 +322,7 @@ namespace enumerable {
 							New->parent = c;
 							New->right = (KeyValuePair<keyType, valueType>*)nullPtr;
 							New->left = (KeyValuePair<keyType, valueType>*)nullPtr;
+							size++;
 							return(0);
 						}
 						c = c->right;
@@ -161,6 +334,7 @@ namespace enumerable {
 							New->parent = c;
 							New->right = (KeyValuePair<keyType, valueType>*)nullPtr;
 							New->left = (KeyValuePair<keyType, valueType>*)nullPtr;
+							size++;
 							return(0);
 						}
 						c = c->left;
@@ -170,24 +344,118 @@ namespace enumerable {
 				throw(&KeyException((char*)"Some key Exception caused"));
 			}
 			catch (objects::Exception* ex) {
-				ex->work();
+				throw ex;
+				//ex->work();
 				return(1);
 			}
 		}
 
 		int set(keyType key, valueType value) {
 			KeyValuePair<keyType, valueType>* New = new KeyValuePair<keyType, valueType>(key, value);
-			set(New);
+			New->_init(myKey);
+			return(set(New));
 		}
 
 		valueType get(keyType key) {
+			try {
+				return(_get(key)->getValue().get<valueType>());
+			}
+			catch (objects::Exception* ex) {
+				throw ex;
+			}
+		}
+
+		int getSize() {
+			return(size);
+		}
+
+		int getFirstIndex() { return(0); }
+		int getFirstHash() { return(0); }
+		KeyValuePair<keyType, valueType>* getFirst() {
+			KeyValuePair<keyType, valueType>* d = head;
+			while (d->left != (KeyValuePair<keyType, valueType>*)nullPtr) {
+				d = (KeyValuePair<keyType, valueType>*)d->left;
+			}
+			if (d->deleted) {
+				return(getNext(d, 0, 0));
+			}
+			return(d);
+
+		}
+
+		int getNextIndex(IItem* current, int index, int hash) { return(index + 1); }
+		int getNextHash(IItem* current, int index, int hash) { return(0); }
+		KeyValuePair<keyType, valueType>* getNext(IItem* current, int index, int hash) {
+			KeyValuePair<keyType, valueType>* cur = (KeyValuePair<keyType, valueType>*)current;
+			if (cur->right != (KeyValuePair<keyType, valueType>*)nullPtr) {
+				/*if (((KeyValuePair<keyType, valueType>*)(cur->right))->deleted) {
+					return(getNext((KeyValuePair<keyType, valueType>*)cur->right, index, hash));
+				}
+				return((KeyValuePair<keyType, valueType>*)cur->right);*/
+				KeyValuePair<keyType, valueType>* d = cur->right;
+				while (d->left != (KeyValuePair<keyType, valueType>*)nullPtr) {
+					d = (KeyValuePair<keyType, valueType>*)d->left;
+				}
+				if (d->deleted) {
+					return(getNext(d, index, hash));
+				}
+				return(d);
+			}
+
+			if (cur == head) {
+				KeyValuePair<keyType, valueType>* res = new KeyValuePair<keyType, valueType>(nullObject, nullObject, true);
+				res->left = (KeyValuePair<keyType, valueType>*)nullPtr;
+				res->right = (KeyValuePair<keyType, valueType>*)nullPtr;
+				res->parent = (KeyValuePair<keyType, valueType>*)nullPtr;
+				return(res);
+			}
+			if (cur->parent == (KeyValuePair<keyType, valueType>*)nullPtr) {
+				KeyValuePair<keyType, valueType>* res = new KeyValuePair<keyType, valueType>(nullObject, nullObject, true);
+				res->left = (KeyValuePair<keyType, valueType>*)nullPtr;
+				res->right = (KeyValuePair<keyType, valueType>*)nullPtr;
+				res->parent = (KeyValuePair<keyType, valueType>*)nullPtr;
+				return(res);
+			}
+
+			if (cur->parent->left == cur) {
+				if (cur->parent->deleted) {
+					return(getNext((KeyValuePair<keyType, valueType>*)cur->parent, hash, index));
+				}
+				return((KeyValuePair<keyType, valueType>*)cur->parent);
+			}
+
+			KeyValuePair<keyType, valueType>* par = (KeyValuePair<keyType, valueType>*)cur->parent;
+			bool flag = false;
+			while (par != head) {
+				if (par->parent->left == par) {
+					flag = true;
+					break;
+				}
+				par = (KeyValuePair<keyType, valueType>*)par->parent;
+			}
+			if (!flag) {
+				KeyValuePair<keyType, valueType>* res = new KeyValuePair<keyType, valueType>(nullObject, nullObject, true);
+				res->left = (KeyValuePair<keyType, valueType>*)nullPtr;
+				res->right = (KeyValuePair<keyType, valueType>*)nullPtr;
+				res->parent = (KeyValuePair<keyType, valueType>*)nullPtr;
+				return(res);
+			}
+			if (par->deleted) {
+				return(getNext(par, index, hash));
+			}
+			return(par);
+		}
+
+	protected:
+
+		KeyValuePair<keyType, valueType>* _get(keyType key) {
 			KeyValuePair<keyType, valueType> cur = KeyValuePair<keyType, valueType>(key, valueType());
 			KeyValuePair<keyType, valueType>* c = head;
 			try {
 				while (c != nullPtr) {
 					if (cur == *c) {
 						if (!c->deleted) {
-							return(c->Value());
+							return(c);
 						}
 						throw(&KeyException((char*)"This item was removed from dictionary"));
 					}
@@ -203,10 +471,11 @@ namespace enumerable {
 				throw(&KeyException((char*)"There is no that key in the dictionary"));
 			}
 			catch (objects::Exception* ex) {
-				ex->work();;
+				throw ex;
+				//ex->work();;
 			}
 		}
-	protected:
+
 		Dictionary(KeyValuePair<keyType, valueType>* kvpArray, int len) {
 			size = len;
 			sortByKeys(kvpArray, len);
@@ -215,7 +484,7 @@ namespace enumerable {
 
 		int size;
 		KeyValuePair<keyType, valueType>* head;
-
+		void* myKey;
 		void sortByKeys(KeyValuePair<keyType, valueType>* kvpArray, int len) {
 			//KeyValuePair<keyType, valueType>* nArray = new KeyValuePair<keyType, valueType>[len];
 			for (int i = 0; i < len; i++)
@@ -257,7 +526,7 @@ namespace enumerable {
 		}
 	};
 
-	class SuperKVPair : public KeyValuePair<objects::Object, objects::Object>, public IItem {
+	class SuperKVPair : public KeyValuePair<objects::Object, objects::Object> {
 	public:
 		void operator = (SuperKVPair a) {
 			this->deleted = a.deleted;
@@ -301,7 +570,8 @@ namespace enumerable {
 			}
 			catch (objects::Exception* ex) {
 				//std::cout << "there1" << std::endl;
-				ex->work();
+				throw ex;
+				//ex->work();
 				return(1);
 				//std::cout << "there3" << std::endl;
 			}
@@ -329,6 +599,11 @@ namespace enumerable {
 		void operator = (SuperDictionary a) {
 			this->head = a.head;
 			this->size = a.getSize();
+			this->myKey = a.myKey;
+		}
+
+		SpecialItem operator [] (objects::Object key) {
+			return(SpecialItem(_get(key), myKey));
 		}
 
 		SuperDictionary(objects::Object* keys, objects::Object* values, int len) {
@@ -336,9 +611,10 @@ namespace enumerable {
 			for (int i = 0; i < len; i++)
 			{
 				kvpArray[i] = SuperKVPair(keys[i], values[i]);
-				kvpArray[i]._init((void*)this);
+				kvpArray[i]._init(myKey);
 			}
 			MakeSuperDictionary(kvpArray, len);
+			myKey = (void*)this;
 		}
 
 		SuperDictionary() {
@@ -346,33 +622,11 @@ namespace enumerable {
 			head->parent = (SuperKVPair*)nullPtr;
 			head->right = (SuperKVPair*)nullPtr;
 			head->left = (SuperKVPair*)nullPtr;
+			myKey = (void*)this;
 		}
 
 		objects::Object get(objects::Object key) {
-			SuperKVPair cur = SuperKVPair(key, objects::Object());
-			SuperKVPair* c = head;
-			try {
-				while (c != nullPtr) {
-					if (cur == *c) {
-						if (!c->deleted) {
-							return(c->Value());
-						}
-						throw(&KeyException((char*)"This item was removed from dictionary"));
-					}
-					if (cur > * c) {
-						c = (SuperKVPair*)c->right;
-						continue;
-					}
-					if (cur < *c) {
-						c = (SuperKVPair*)c->left;
-						continue;
-					}
-				}
-				throw(&KeyException((char*)"There is no that key in the dictionary"));
-			}
-			catch (objects::Exception* ex) {
-				ex->work();;
-			}
+			return(_get(key)->getValue());
 		}
 
 		int set(SuperKVPair* New) {
@@ -381,7 +635,7 @@ namespace enumerable {
 				while (c != nullPtr) {
 					if (*New == *c) {
 						c->deleted = false;
-						c->setValue(New->Value(), (void*)this);
+						c->setValue(New->Value(), myKey);
 					}
 					if (*New > * c) {
 						if (c->right == (SuperKVPair*)nullPtr) {
@@ -412,7 +666,8 @@ namespace enumerable {
 				throw(&KeyException((char*)"Some key Exception caused"));
 			}
 			catch (objects::Exception* ex) {
-				ex->work();
+				throw ex;
+				//ex->work();
 				return(1);
 			}
 		}
@@ -444,7 +699,8 @@ namespace enumerable {
 				throw(&KeyException((char*)"There is no that key in the dictionary"));
 			}
 			catch (objects::Exception* ex) {
-				ex->work();
+				throw ex;
+				//ex->work();
 				return(1);
 			}
 		}
@@ -480,13 +736,18 @@ namespace enumerable {
 			return(remove(keyObject));
 		}
 
-		IItem* getNext(IItem* current, int index, int hash){
+		SuperKVPair* getNext(IItem* current, int index, int hash){
 			SuperKVPair* cur = (SuperKVPair*)current;
 			if (cur->right != (SuperKVPair*)nullPtr) {
-				if (((SuperKVPair*)(cur->right))->deleted) {
+				/*if (((SuperKVPair*)(cur->right))->deleted) {
 					return(getNext((SuperKVPair*)cur->right, index, hash));
 				}
-				return((SuperKVPair*)cur->right);
+				return((SuperKVPair*)cur->right);*/
+				SuperKVPair* d = (SuperKVPair*)cur->right;
+				while (d->left != (SuperKVPair*)nullPtr) {
+					d = (SuperKVPair*)d->left;
+				}
+				return(d);
 			}
 
 			if (cur == head) {
@@ -541,7 +802,7 @@ namespace enumerable {
 			return(0);
 		}
 		
-		IItem* getFirst(){
+		SuperKVPair* getFirst(){
 			SuperKVPair* d = head;
 			while (d->left != (SuperKVPair*)nullPtr) {
 				d = (SuperKVPair*)d->left;
@@ -562,6 +823,35 @@ namespace enumerable {
 		}
 	private:
 		SuperKVPair* head;
+
+		SuperKVPair* _get(objects::Object key) {
+			SuperKVPair cur = SuperKVPair(key, objects::Object());
+			SuperKVPair* c = head;
+			try {
+				while (c != nullPtr) {
+					if (cur == *c) {
+						if (!c->deleted) {
+							return(c);
+						}
+						throw(&KeyException((char*)"This item was removed from dictionary"));
+					}
+					if (cur > * c) {
+						c = (SuperKVPair*)c->right;
+						continue;
+					}
+					if (cur < *c) {
+						c = (SuperKVPair*)c->left;
+						continue;
+					}
+				}
+				throw(&KeyException((char*)"There is no that key in the dictionary"));
+			}
+			catch (objects::Exception* ex) {
+				throw ex;
+				//ex->work();;
+			}
+		}
+
 
 		void MakeSuperDictionary(SuperKVPair* skvpArr, int len) {
 			size = len;

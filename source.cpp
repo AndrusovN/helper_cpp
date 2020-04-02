@@ -81,14 +81,82 @@ int main() {
 		std::cout << i.get<int>() << std::endl;
 	}
 
-	std::cout << std::endl << myList[0].value() << std::endl;
+	std::cout << std::endl << myList[0] << std::endl;
 	myList[0] = 1234;
 	myList[1] = 1234;
 
 	if (myList[0] == myList[1] && myList[0] == 1234) {
-		std::cout << myList[0].value() << std::endl;
+		std::cout << myList[0] << std::endl;
+	}
+	
+
+	Dictionary<char, int> myDict = Dictionary<char, int>();
+
+	myDict.set('q', 123);
+	myDict.set('w', -179);
+	myDict.set('e', 98);
+	myDict.set('r', 567);
+
+	myDict.remove('q');
+
+	reconstructDictionary(&myDict);
+
+	myEnumerator = Enumerator(&myDict);
+
+	for (Object i = myEnumerator.next(); i != nullObject; i = myEnumerator.next())
+	{
+		std::cout << i.get<int>() << std::endl;
+	}
+	std::cout << std::endl;
+
+	//std::cout << myDict['w'] << std::endl;
+
+	myDict['e'] = 1234;
+
+	if (myDict['r'] == 567) {
+		std::cout << myDict['e'] << std::endl;
+		std::cout << myDict['w'] << std::endl;
+		std::cout << myDict['r'] << std::endl;
+	}
+	
+
+	Array myArray = Array(3);
+
+	myArray.setItem<int>(0, 11);
+	objects::Object obj1 = objects::Object();
+	obj1.set<int>(179);
+	myArray[1] = obj1;
+	objects::Object obj2 = objects::Object();
+	obj2.set<int>(-234);
+	myArray[2] = obj2;
+
+	myEnumerator = Enumerator(&myArray);
+
+	for (objects::Object i = myEnumerator.next(); i != nullObject; i = myEnumerator.next())
+	{
+		std::cout << i.get<int>() << std::endl;
 	}
 
+	std::cout << "------------------------" << std::endl;
+
+	TArray<double> myTArray = TArray<double>(4);
+	myTArray[0] = 179.0;
+	myTArray[1] = 0.73;
+	myTArray[2] = 3.1415926535897932384626433;
+	myTArray[3] = 2.718281828459045;
+
+	myEnumerator = Enumerator(&myTArray);
+
+	for (Object i = myEnumerator.next(); i != nullObject; i = myEnumerator.next())
+	{
+		std::cout << i.get<double>() << std::endl;
+	}
+
+	std::cout << std::endl;
+	std::cout << std::endl;
+	myTArray[1] = 3.1415926535897932384626433;
+
+	std::cout << myTArray[2] << std::endl << (bool)(myTArray[2] < 2.1415926535897932384626433) << std::endl << (bool)(myTArray[2] == myTArray[1]) << std::endl;;
 
 	return(0);
 }

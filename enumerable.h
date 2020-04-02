@@ -304,8 +304,97 @@ namespace enumerable {
 		bool set = false;
 	};
 
+	class SpecialItem {
+	public:
+		SpecialItem(){}
+
+		SpecialItem(IItem* item, void* key) {
+			this->item = item;
+			this->key = key;
+		}
+
+		objects::Object value() {
+			return(item->getValue());
+		}
+
+		operator objects::Object() {
+			return(value());
+		}
+
+		void operator = (objects::Object value) {
+			item->setValue(value, key);
+		}
+
+		bool operator == (SpecialItem a) {
+			return(value() == a.value());
+		}
+
+		bool operator == (objects::Object a) {
+			return(value() == a);
+		}
+
+		bool operator != (SpecialItem a) {
+			return(!(*this == a));
+		}
+
+		bool operator != (objects::Object a) {
+			return(!(*this == a));
+		}
+
+		bool operator > (SpecialItem a) {
+			return(value() > a.value());
+		}
+
+		bool operator > (objects::Object a) {
+			return(value() > a);
+		}
+
+		bool operator < (SpecialItem a) {
+			return(value() < a.value());
+		}
+
+		bool operator < (objects::Object a) {
+			return(value() < a);
+		}
+
+		bool operator >= (SpecialItem a) {
+			return(value() > a.value() || value() == a.value());
+		}
+
+		bool operator >= (objects::Object a) {
+			return(value() > a || value() == a);
+		}
+
+		bool operator <= (SpecialItem a) {
+			return(value() < a.value() || value() == a.value());
+		}
+
+		bool operator <= (objects::Object a) {
+			return(value() < a || value() == a);
+		}
+
+	protected:
+		IItem* item;
+		void* key;
+	};
+
 	class Array : public IEnumerable {
 	public:
+		SpecialItem operator [](int index) {
+			try {
+				if (index < length && index > -1) {
+					return(SpecialItem(&arr[index], keys[index]));
+				}
+				else
+				{
+					throw &IndexException((char*)"Index out of range exception!");
+				}
+			}
+			catch (objects::Exception* ex) {
+				throw ex;
+			}
+		}
+
 		Array(int len) {
 			arr = new ArrItem[len];
 			keys = new void* [len];
